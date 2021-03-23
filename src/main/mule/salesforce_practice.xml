@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="d9025f47-f844-4cba-b350-165418bbdea1" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<salesforce:sfdc-config name="Salesforce_Config" doc:name="Salesforce Config" doc:id="f0033ec8-79e4-4ba4-8dad-2861e6c4808b" >
+		<salesforce:basic-connection username="gelivikrishna@ust.com" password="Krishna!1234" securityToken="ZZ1vVa8U0ayoYTf7Y2TVFhQa8" />
+	</salesforce:sfdc-config>
+	<file:config name="File_Config" doc:name="File Config" doc:id="74f97031-1cfa-4ce6-9e1c-2a7389c33a95" >
+		<file:connection workingDir="D:\Mule\output" />
+	</file:config>
+	<flow name="salesforce_practiceFlow" doc:id="35221a42-c808-4fc7-b1e7-a5164918670d" >
+		<http:listener doc:name="Listener" doc:id="ca884bc1-9938-4bc2-b843-5aad682c8c0b" config-ref="HTTP_Listener_config" path="/sfdc"/>
+		<set-variable value="#[attributes.queryParams.account]" doc:name="Set Variable" doc:id="fe2b07f1-dd8a-4cd7-ac76-b938ffd78471" variableName="Account_name"/>
+		<choice doc:name="Choice" doc:id="625a0bb2-ed89-4035-849e-302af6dd76c0" >
+			<when expression="#[vars.Account_name !=null]">
+				<salesforce:query doc:name="Query" doc:id="2fb0f04f-75d7-4eb6-9315-aca6b03d57fd" config-ref="Salesforce_Config">
+					<salesforce:salesforce-query ><![CDATA[SELECT AccountNumber, BillingAddress, Industry, Name, NumberOfEmployees, Phone FROM Account WHERE Name= ':account_name']]></salesforce:salesforce-query>
+					<salesforce:parameters ><![CDATA[#[output application/java
+---
+{
+	account_name : vars.Account_name
+}]]]></salesforce:parameters>
+				</salesforce:query>
+				<ee:transform doc:name="Transform Message" doc:id="3cbe7d46-7bbf-41f9-9c9a-d8ce6cb2ea7d" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/csv
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	Name: payload01.Name default "",
+	AccountNumber: payload01.AccountNumber default "",
+	Industry: payload01.Industry default "",
+	Phone: payload01.Phone default "",
+	NumberOfEmployees: payload01.NumberOfEmployees as String default ""
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<salesforce:query doc:name="Query" doc:id="658dc3c4-fc37-4389-9a51-3cb2771d69fe" config-ref="Salesforce_Config">
+					<salesforce:salesforce-query ><![CDATA[SELECT AccountNumber, BillingAddress, Industry, Name, NumberOfEmployees, Phone FROM Account]]></salesforce:salesforce-query>
+				</salesforce:query>
+				<ee:transform doc:name="Transform Message" doc:id="bba5936a-d5ae-4c0f-ac6f-f351210ca0b7" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/csv
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	Name: payload01.Name default "",
+	AccountNumber: payload01.AccountNumber default "",
+	Industry: payload01.Industry default "",
+	Phone: payload01.Phone default "",
+	NumberOfEmployees: payload01.NumberOfEmployees as String default ""
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+		<set-variable value='#["JEEVAN " ++ (now()) as String {format: "dd.MM.yyyy-hh.mm.ss"} ++ ".csv"]' doc:name="Set Variable" doc:id="4000edf8-941a-4b0a-8448-98420ff5e0c2" variableName="filename"/>
+		<file:write doc:name="Write" doc:id="ae510829-fcad-4a38-bb4e-5f793131a620" config-ref="File_Config" path="#[vars.filename]"/>
+	</flow>
+</mule>

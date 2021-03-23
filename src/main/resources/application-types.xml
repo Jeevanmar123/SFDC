@@ -1,0 +1,37 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<types:mule xmlns:types="http://www.mulesoft.org/schema/mule/types">
+  <types:catalog>
+    <types:type name="account_csv" format="csv">
+      <types:shape format="weave" example="examples/UST_19032021.012328.csv"><![CDATA[%dw 2.0
+
+type account_csv = Array<{|  Name: String,   AccountNumber: String,   Industry: String,   Phone: String,   NumberOfEmployees: String,   BillingAdress: String|}> {"isQuotedString": "false",
+"header": "true",
+"headerLineNumber": "0"}
+
+]]></types:shape>
+      <types:properties>
+        <types:property name="headerLineNumber" value="0"/>
+        <types:property name="header" value="true"/>
+        <types:property name="isQuotedString" value="false"/>
+      </types:properties>
+    </types:type>
+  </types:catalog>
+  <types:enrichment select="#3cbe7d46-7bbf-41f9-9c9a-d8ce6cb2ea7d">
+    <types:processor-declaration>
+      <types:output-event>
+        <types:message>
+          <types:payload type="account_csv"/>
+        </types:message>
+      </types:output-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#bba5936a-d5ae-4c0f-ac6f-f351210ca0b7">
+    <types:processor-declaration>
+      <types:output-event>
+        <types:message>
+          <types:payload type="account_csv"/>
+        </types:message>
+      </types:output-event>
+    </types:processor-declaration>
+  </types:enrichment>
+</types:mule>
